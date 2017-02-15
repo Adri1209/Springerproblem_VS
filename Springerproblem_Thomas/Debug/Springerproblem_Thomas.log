@@ -1,0 +1,4 @@
+﻿  main.c
+c:\users\adrian\documents\visual studio 2015\projects\springerproblem_thomas\springerproblem_thomas\main.c(128): warning C4244: "Funktion": Konvertierung von "time_t" in "unsigned int", möglicher Datenverlust
+  Springerproblem_Thomas.vcxproj -> C:\Users\Adrian\documents\visual studio 2015\Projects\Springerproblem_Thomas\Debug\Springerproblem_Thomas.exe
+  Springerproblem_Thomas.vcxproj -> C:\Users\Adrian\documents\visual studio 2015\Projects\Springerproblem_Thomas\Debug\Springerproblem_Thomas.pdb (Full PDB)
