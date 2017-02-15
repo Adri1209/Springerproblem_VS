@@ -1,12 +1,11 @@
-#define _CRT_SECURE_NO_WARNINGS
+ï»¿#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
 //#include <windows.h>
 
-
-//Struct, für ein einzelnes Feld
+//Struct, fÃ¼r ein einzelnes Feld
 typedef struct
 {
 	bool moeglichkeiten[8];
@@ -43,20 +42,25 @@ typedef struct //Brettstruktur
 
 const short moeglichkeitenx[8] = { -2, -2, -1, 1, 2, 2, 1, -1 };
 const short moeglichkeiteny[8] = { -1, 1, 2, 2, 1, -1, -2, -2 };
+//bool debug = false;
 bool debug = false;
-//bool debug = true;
 
 /**
-Berechnet, ob eine gewisse Position (x,y) innerhalb oder außerhalb eines n*n Brettes liegt
-Rückgabewerte: true=liegt innerhalb; false=liegt außerhalb
-Übergabeparameter: Position x,y; Feldgröße(nxn)
+\brief Berechnet, ob eine gewisse Position (x,y) innerhalb oder auÃŸerhalb eines n*n Brettes liegt
+\return true=liegt innerhalb; false=liegt auÃŸerhalb
+\param x:   Position x
+\param y:   Position y
+\param feldgroesse: FeldgrÃ¶ÃŸe(nxn)
 */
 bool getPositionInnerhalbFeld(int x, int y, int feldgroesse)
 {
 	return ((x >= 0 && x < feldgroesse) && (y >= 0 && y < feldgroesse));
 }
 
-//Führt alle notwendigen Eingaben durch
+/**
+\brief Fragt die Eingabeparmeter des Benutzers ab
+\param board Pointer auf die Brettstruktur
+*/
 void getEingaben(brettattrs *board)
 {
 
@@ -66,7 +70,7 @@ void getEingaben(brettattrs *board)
 	int maxn = 20;
 	do
 	{
-		printf("Bitte Feldgroesse (n x n) eingeben(%d<n<%d): ", minn, maxn);
+		printf("Bitte Feldgroesse (n x n) eingeben(%d<=n<=%d): ", minn, maxn);
 		scanf("%d", &n);
 		if ((n < minn || n > maxn))
 		{
@@ -80,7 +84,7 @@ void getEingaben(brettattrs *board)
 	} while (n < minn || n > maxn);
 
 	//Zugfolge geschlossen oder nicht
-	int d = 0;
+	int d;
 	if (n % 2 == 1)
 	{
 		printf("Da n ungerade ist, kann die Zugfolge nicht geschlossen sein!\n");
@@ -112,7 +116,7 @@ void getEingaben(brettattrs *board)
 		} while (d != 1);
 	}
 
-	//Benutzereingabe des Startfeldes oder Auswahl eines zufälligen Feldes durch den PC
+	//Benutzereingabe des Startfeldes oder Auswahl eines zufÃ¤lligen Feldes durch den PC
 	d = 0;
 	do
 	{
@@ -124,7 +128,7 @@ void getEingaben(brettattrs *board)
 		case 'j':
 		case '1':
 			board->benutzereingabe = false;
-			//Zufälliges Startfeld berechnen  --> abhängig von Zeit, da sonst immer die selben Werte herauskommen
+			//ZufÃ¤lliges Startfeld berechnen  --> abhÃ¤ngig von Zeit, da sonst immer die selben Werte herauskommen
 			srand(time(NULL));
 			board->startx = rand() % board->n;
 			board->starty = rand() % board->n;
@@ -162,74 +166,117 @@ void getEingaben(brettattrs *board)
 	board->aktuellesx = board->startx;
 	board->aktuellesy = board->starty;
 }
-//Gibt die berechnete Zugfolge aus
+
+/**
+\brief Gibt die berechnete Zugfolge mithilfe der folgenden ASCII Werte formatiert aus
+\param board:   Pointer auf die Brettstruktur
+185: â•£
+186: â•‘
+187: â•—
+188: â•
+200: â•š
+201: â•”
+202: â•©
+203: â•¦
+204: â• 
+205: â•
+206: â•¬
+*/
 void printFeld(brettattrs *board)
 {
+	//Zahlenreihe oben
+	printf("\t ");
+	for (int o = 0; o < board->n; o++)
+	{
+		printf("%3c  ", 97 + o);
+	}
+	//Linie oben
+	printf("\n\t%c", 201);
+	for (int o = 0; o < board->n - 1; o++)
+	{
+		printf("%c%c%c%c%c", 205, 205, 205, 205, 203);
+	}
+	printf("%c%c%c%c%c\n", 205, 205, 205, 205, 187); //Ende Linie oben
+
 	for (int i = 0; i < board->n; i++)
 	{
+		//Zahlenzeile
+		printf("     %d\t%c", 1 + i, 186);
 		for (int o = 0; o < board->n; o++)
 		{
-			printf("%10d", board->feldzugfolge[i][o]);
+			printf("%3d %c", board->feldzugfolge[i][o], 186);
+		}//Ende Zahlenzeile
+
+		if (i == board->n - 1) //Linie unten
+		{
+			printf("\n\t%c", 200);
+			for (int i = 0; i<board->n - 1; i++)
+			{
+				printf("%c%c%c%c%c", 205, 205, 205, 205, 202);
+			}
+			printf("%c%c%c%c%c\n", 205, 205, 205, 205, 188);
+		}//Ende Linie unten
+
+		else  //Trennlinie im Feld
+		{
+			printf("\n\t%c", 204);
+			for (int i = 0; i<board->n - 1; i++)
+			{
+				printf("%c%c%c%c%c", 205, 205, 205, 205, 206);
+			}
+			printf("%c%c%c%c%c\n", 205, 205, 205, 205, 185);
+
 		}
-		printf("\n");
+
 	}
 }
 
 /**
-Gibt die Anzahl der nicht besuchten Felder(leere Felder) zurück
+\brief Gibt die Anzahl der nicht besuchten Felder(leere Felder) zurÃ¼ck
+\param board Brettstruktur
+\retun Anzahl der Leeren Felder
 */
 int getAnzahlLeereFelder(brettattrs board)
 {
 	return (board.n*board.n - board.maxfeldnr);
 }
 
-//Berechnet die Möglichkeiten, die ein Springer auf einem bestimmten Feld hat und
-//ebenso die Anzahl der darauffolgenden Züge (s.Wandorf)
+/**
+\brief Berechnet die MÃ¶glichkeiten, die ein Springer auf einem bestimmten Feld hat, sowie die Anzahl der darauffolgenden ZÃ¼ge und speichert diese in die Brettstruktur
+\param x:   Position x
+\param y:   Position y
+\param board:   Pointer auf die Brettstruktur
+*/
 void getMoeglichkeiten(int x, int y, brettattrs *board)
 {
-	//Add backtrack Berücksichtigung
+	//MÃ¶glichkeiten berechnen
 	int tempx1, tempx2, tempy1, tempy2;
 	for (int i = 0; i < 8; i++)
 	{
 		tempx1 = x + moeglichkeitenx[i];
 		tempy1 = y + moeglichkeiteny[i];
 
-		if (getPositionInnerhalbFeld(tempx1, tempy1, board->n))
+		if (getPositionInnerhalbFeld(tempx1, tempy1, board->n) && board->feldzugfolge[tempx1][tempy1] == 0 && board->felder[x][y].besucht[i] == false)
 		{
-			if (board->feldzugfolge[tempx1][tempy1] == 0)
+			board->felder[x][y].moeglichkeiten[i] = true;
+			//Anzahl der darauffolgenden ZÃ¼ge berechnen
+			board->felder[x][y].nachfolger[i] = 0;
+			for (int o = 0; o < 8; o++)
 			{
-				if (board->felder[x][y].besucht[i] == false)
-				{
-					{
-						board->felder[x][y].moeglichkeiten[i] = true;
-						//Anzahl der darauffolgenden Züge berechnen
-						board->felder[x][y].nachfolger[i] = 0;
-						for (int o = 0; o < 8; o++)
-						{
-							tempx2 = tempx1 + moeglichkeitenx[o];
-							tempy2 = tempy1 + moeglichkeiteny[o];
-							if (getPositionInnerhalbFeld(tempx2, tempy2, board->n))
-							{
-								if (board->feldzugfolge[tempx2][tempy2] == 0)
-								{
-									board->felder[x][y].nachfolger[i] += 1;
-								}
-							}
-						}
-					}
-				}
-
+				tempx2 = tempx1 + moeglichkeitenx[o];
+				tempy2 = tempy1 + moeglichkeiteny[o];
+				if (getPositionInnerhalbFeld(tempx2, tempy2, board->n) && board->feldzugfolge[tempx2][tempy2] == 0) board->felder[x][y].nachfolger[i]++;
 			}
 		}
 	}
 }
 
 
-//Gibt den Zug(0-7)(siehe moeglichkeitenx/moeglichkeiteny) mit den am wenigsten darauffolgenden Zügen zurück
+//Gibt den Zug(0-7)(siehe moeglichkeitenx/moeglichkeiteny) mit den am wenigsten darauffolgenden ZÃ¼gen zurÃ¼ck
 int getPriorisiertenZug(brettattrs board)
 {
 	int index = -1;
-	int count = 8;  //8, da es maximal 8 Züge gibt
+	int count = 8;  //8, da es maximal 8 ZÃ¼ge gibt
 	for (int i = 0; i < 8; i++)
 	{
 		if (board.felder[board.aktuellesx][board.aktuellesy].nachfolger[i] < count && board.felder[board.aktuellesx][board.aktuellesy].moeglichkeiten[i] == true)
@@ -242,7 +289,7 @@ int getPriorisiertenZug(brettattrs board)
 }
 
 
-//Gibt die Anzahl der Möglichkeiten für ein Feld zurück
+//Gibt die Anzahl der MÃ¶glichkeiten fÃ¼r ein Feld zurÃ¼ck
 int getAnzahlMoeglichkeitenXY(brettattrs board)
 {
 	int anzahl = 0;
@@ -252,55 +299,35 @@ int getAnzahlMoeglichkeitenXY(brettattrs board)
 }
 
 
-//NUR FÜR DEBUG
+//NUR FÃœR DEBUG
 void printMoeglichkeiten(int x, int y, brettattrs board)
 {
 	for (int i = 0; i < 8; i++)
-	{
 		printf("moeg %d: %s --> %d  Nachfolger\n", i, board.felder[x][y].moeglichkeiten[i] ? "true" : "false", board.felder[x][y].nachfolger[i]);
-	}
 	printf("\n");
 }
-
 
 //Gibt an, ob die vorliegende Zugfolge geschlossen ist oder nicht
 bool getIstGeschlossen(brettattrs board)
 {
 	int max = board.n * board.n;
 	if (getAnzahlLeereFelder(board) == 0)
-	{
 		for (int i = 0; i < board.n; i++)
-		{
 			for (int o = 0; o < board.n; o++)
-			{
 				if (board.feldzugfolge[i][o] == max)
-				{
 					for (int p = 0; p < 8; p++)
-					{
-						if (i + moeglichkeitenx[p] == board.startx && o + moeglichkeiteny[p] == board.starty)
-						{
-							return true;
-						}
-
-					}
-				}
-			}
-		}
-	}
+						if (i + moeglichkeitenx[p] == board.startx && o + moeglichkeiteny[p] == board.starty) return true;
 	return false;
 }
 
-int getAnzahlBelegtUmStartFeld(brettattrs board)
+int getAnzahlFreiUmStartFeld(brettattrs *board)
 {
 	int count = 0;
 	for (int i = 0; i < 8; i++)
 	{
-		int tempx = board.startx + moeglichkeitenx[i];
-		int tempy = board.starty + moeglichkeiteny[i];
-		if (getPositionInnerhalbFeld(tempx, tempy, board.n) && board.feldzugfolge[tempx][tempy] == 0)
-		{
-			count++;
-		}
+		int tempx = board->startx + moeglichkeitenx[i];
+		int tempy = board->starty + moeglichkeiteny[i];
+		if (getPositionInnerhalbFeld(tempx, tempy, board->n) && board->feldzugfolge[tempx][tempy] == 0) count++;
 	}
 	return count;
 }
@@ -315,10 +342,8 @@ void moveBack(brettattrs *board)
 {
 	int altesx = board->aktuellesx;
 	int altesy = board->aktuellesy;
-
 	board->vorletztesbackx = board->letztesbackx;
 	board->vorletztesbacky = board->letztesbacky;
-
 	board->letztesbackx = board->aktuellesx;
 	board->letztesbacky = board->aktuellesy;
 
@@ -365,10 +390,8 @@ void moveForward(brettattrs *board)
 	//Aktuelle Positionen in das vorherige Feld eintragen
 	board->felder[altesx][altesy].nachfolgendesx = board->aktuellesx;
 	board->felder[altesx][altesy].nachfolgendesy = board->aktuellesy;
-
 	board->felder[altesx][altesy].besucht[index] = true;
 	board->felder[altesx][altesy].moeglichkeiten[index] = false;
-	//    printf("belegt um startfeld: %d\n", getAnzahlBelegtUmStartFeld(*board));
 }
 
 
@@ -382,10 +405,10 @@ void berechneZugfolge(brettattrs *board)
 		getMoeglichkeiten(board->aktuellesx, board->aktuellesy, board);
 		if (debug) printMoeglichkeiten(board->aktuellesx, board->aktuellesy, *board);
 		if (debug) printf("x: %d, y: %d\n", board->aktuellesx, board->aktuellesy);
-		if (getAnzahlMoeglichkeitenXY(*board) > 0 && getAnzahlLeereFelder(*board) != 0 && getAnzahlBelegtUmStartFeld(*board) != 0)
+		if (getAnzahlMoeglichkeitenXY(*board) > 0 && getAnzahlLeereFelder(*board) > 0 && getAnzahlFreiUmStartFeld(board))
 		{
-			if (debug) printf("forw: %d x: %d y: %d\n", getAnzahlMoeglichkeitenXY(*board), board->aktuellesx, board->aktuellesy);
 			moveForward(board);
+			if (debug) printf("forw: %d x: %d y: %d\n", getAnzahlMoeglichkeitenXY(*board), board->aktuellesx, board->aktuellesy);
 			if (debug) printf("---------\n");
 			if (debug) printFeld(board);
 		}
@@ -396,7 +419,7 @@ void berechneZugfolge(brettattrs *board)
 			moveBack(board);
 			if (debug) printFeld(board);
 		}
-		//        Überprüfung, ob Berechnung fertig ist oder nicht
+		//        ÃœberprÃ¼fung, ob Berechnung fertig ist oder nicht
 		if (board->geschlossen == true && getAnzahlLeereFelder(*board) == 0)
 		{
 			if (getIstGeschlossen(*board) == true)
@@ -415,16 +438,12 @@ void berechneZugfolge(brettattrs *board)
 		{
 			exit = true;
 		}
-		if (exit)
-		{
-			printf("Done...\n\n\n");
-		}
 		if (debug) scanf("ENTER");
 		if (debug) getchar();
 	}
 }
 
-int main()
+int main(int argc, char *argv[])
 {
 	brettattrs board;
 	//Benutzereingaben
@@ -459,7 +478,8 @@ int main()
 	printf("\n");
 	if (debug) printf("Leere Felder: %d\n", getAnzahlLeereFelder(board));
 	printf("Zugfolge berechnet in %dms\n", timer);
-	//Speicher freigeben
+	printf("backtrack: %d\n", board.anzahlbacktracking);//7^7
+														//Speicher freigeben
 	for (int i = 0; i < board.n; i++)
 	{
 		free(board.feldzugfolge[i]);
@@ -469,3 +489,4 @@ int main()
 	free(board.felder);
 	return 0;
 }
+
