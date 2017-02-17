@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
+#include <sys/timeb.h>
 //#include <windows.h>
 
 //Struct, für ein einzelnes Feld
@@ -42,7 +43,7 @@ typedef struct //Brettstruktur
 
 const short moeglichkeitenx[8] = { -2, -2, -1, 1, 2, 2, 1, -1 };
 const short moeglichkeiteny[8] = { -1, 1, 2, 2, 1, -1, -2, -2 };
-//bool debug = false;
+//bool debug = true;
 bool debug = false;
 
 /**
@@ -163,6 +164,7 @@ void getEingaben(brettattrs *board)
 		}
 		getchar();
 	} while (d != 1);
+	printf("Der Computer berechnet nun eine %s Zugfolge ausgehend von %d %d!\n", board->geschlossen ? "geschlossene" : "offene", board->startx, board->starty);
 	board->aktuellesx = board->startx;
 	board->aktuellesy = board->starty;
 }
@@ -249,6 +251,8 @@ int getAnzahlLeereFelder(brettattrs board)
 */
 void getMoeglichkeiten(int x, int y, brettattrs *board)
 {
+	//FEHLER
+	for (int i = 0; i<8; i++) board->felder[x][y].moeglichkeiten[i] = false;
 	//Möglichkeiten berechnen
 	int tempx1, tempx2, tempy1, tempy2;
 	for (int i = 0; i < 8; i++)
@@ -322,12 +326,16 @@ bool getIstGeschlossen(brettattrs board)
 
 int getAnzahlFreiUmStartFeld(brettattrs *board)
 {
-	int count = 0;
-	for (int i = 0; i < 8; i++)
+	int count = -1;
+	if (board->geschlossen == true)
 	{
-		int tempx = board->startx + moeglichkeitenx[i];
-		int tempy = board->starty + moeglichkeiteny[i];
-		if (getPositionInnerhalbFeld(tempx, tempy, board->n) && board->feldzugfolge[tempx][tempy] == 0) count++;
+		count = 0;
+		for (int i = 0; i < 8; i++)
+		{
+			int tempx = board->startx + moeglichkeitenx[i];
+			int tempy = board->starty + moeglichkeiteny[i];
+			if (getPositionInnerhalbFeld(tempx, tempy, board->n) && board->feldzugfolge[tempx][tempy] == 0) count++;
+		}
 	}
 	return count;
 }
@@ -386,7 +394,6 @@ void moveForward(brettattrs *board)
 		board->felder[board->aktuellesx][board->aktuellesy].vorherigesx = altesx;
 		board->felder[board->aktuellesx][board->aktuellesy].vorherigesy = altesy;
 	}
-
 	//Aktuelle Positionen in das vorherige Feld eintragen
 	board->felder[altesx][altesy].nachfolgendesx = board->aktuellesx;
 	board->felder[altesx][altesy].nachfolgendesy = board->aktuellesy;
@@ -398,18 +405,32 @@ void moveForward(brettattrs *board)
 //berechnet die Zugfolge des Springers
 void berechneZugfolge(brettattrs *board)
 {
-
 	bool exit = false;
 	while (exit == false)
 	{
 		getMoeglichkeiten(board->aktuellesx, board->aktuellesy, board);
 		if (debug) printMoeglichkeiten(board->aktuellesx, board->aktuellesy, *board);
 		if (debug) printf("x: %d, y: %d\n", board->aktuellesx, board->aktuellesy);
-		if (getAnzahlMoeglichkeitenXY(*board) > 0 && getAnzahlLeereFelder(*board) > 0 && getAnzahlFreiUmStartFeld(board))
+		if (getAnzahlMoeglichkeitenXY(*board) > 0 && getAnzahlLeereFelder(*board) > 0)
 		{
-			moveForward(board);
-			if (debug) printf("forw: %d x: %d y: %d\n", getAnzahlMoeglichkeitenXY(*board), board->aktuellesx, board->aktuellesy);
+			int getLeereFelderUmStarfeld = getAnzahlFreiUmStartFeld(board);
 			if (debug) printf("---------\n");
+			if (debug) printf("freie felder um startfeld: %d\n", getLeereFelderUmStarfeld);
+			switch (getLeereFelderUmStarfeld)
+			{
+			case -1:
+				moveForward(board);
+				if (debug) printf("forw: %d x: %d y: %d\n", getAnzahlMoeglichkeitenXY(*board), board->aktuellesx, board->aktuellesy);
+				break;
+			case 0:
+				moveBack(board);
+				if (debug) printf("back: %d x: %d y: %d\n", getAnzahlMoeglichkeitenXY(*board), board->aktuellesx, board->aktuellesy);
+				break;
+			default:
+				moveForward(board);
+				if (debug) printf("forw: %d x: %d y: %d\n", getAnzahlMoeglichkeitenXY(*board), board->aktuellesx, board->aktuellesy);
+				break;
+			}
 			if (debug) printFeld(board);
 		}
 		else
@@ -443,50 +464,99 @@ void berechneZugfolge(brettattrs *board)
 	}
 }
 
+void speicherAlloc(brettattrs *board)
+{
+	board->feldzugfolge = calloc(board->n, sizeof(int *));
+	board->felder = calloc(board->n, sizeof(feld *));
+	for (int i = 0; i < board->n; i++)
+	{
+		board->feldzugfolge[i] = calloc(board->n, sizeof(int));
+		board->felder[i] = calloc(board->n, sizeof(feld));
+	}
+}
+
+void speicherFreigeben(brettattrs *board)
+{
+	for (int i = 0; i < board->n; i++)
+	{
+		free(board->feldzugfolge[i]);
+		free(board->felder[i]);
+	}
+	free(board->feldzugfolge);
+	free(board->felder);
+}
+
+void boardInit(brettattrs *board)
+{
+	board->maxfeldnr = 1;
+	board->feldzugfolge[board->startx][board->starty] = board->maxfeldnr;
+
+	board->letztesbackx = -1;
+	board->letztesbacky = -1;
+
+	board->vorletztesbackx = -1;
+	board->vorletztesbacky = -1;
+	board->anzahlbacktracking = 0;
+}
+
+
 int main(int argc, char *argv[])
 {
 	brettattrs board;
+	int *boardptr = &board;
 	//Benutzereingaben
-	getEingaben(&board);
+	getEingaben(boardptr);
 	//Speicher allokieren
-	board.feldzugfolge = calloc(board.n, sizeof(int *));
-	board.felder = calloc(board.n, sizeof(feld *));
-
-	for (int i = 0; i < board.n; i++)
-	{
-		board.feldzugfolge[i] = calloc(board.n, sizeof(int));
-		board.felder[i] = calloc(board.n, sizeof(feld));
-	}
-
-	board.maxfeldnr = 1;
-	board.feldzugfolge[board.startx][board.starty] = board.maxfeldnr;
-
-	board.letztesbackx = -1;
-	board.letztesbacky = -1;
-
-	board.vorletztesbackx = -1;
-	board.vorletztesbacky = -1;
-	board.anzahlbacktracking = 0;
+	speicherAlloc(boardptr);
+	//Init Variablen
+	boardInit(boardptr);
+	//-----------------------
 
 	int timer = clock();
-
-	berechneZugfolge(&board);
-
+	berechneZugfolge(boardptr);
 	timer = clock() - timer;
+	printFeld(boardptr);
 
-	printFeld(&board);
 	printf("\n");
 	if (debug) printf("Leere Felder: %d\n", getAnzahlLeereFelder(board));
 	printf("Zugfolge berechnet in %dms\n", timer);
-	printf("backtrack: %d\n", board.anzahlbacktracking);//7^7
+	printf("backtrack: %d\n", board.anzahlbacktracking);//7^74)
+
+
 														//Speicher freigeben
-	for (int i = 0; i < board.n; i++)
-	{
-		free(board.feldzugfolge[i]);
-		free(board.felder[i]);
-	}
-	free(board.feldzugfolge);
-	free(board.felder);
+	speicherFreigeben(boardptr);
 	return 0;
 }
+/* µs timer:
+
+
+struct timeval begin, end;
+long seconds, useconds;
+int i;
+
+
+
+if (gettimeofday(&begin,(struct timezone *)0)) {
+fprintf(stderr, "can not get time\n");
+exit(1);
+}
+
+for(i=1; i<100000000;i++);
+
+if (gettimeofday(&end,(struct timezone *)0)) {
+fprintf(stderr, "can not get time\n");
+exit(1);
+}
+printf("begin:                         %d sec %d usec\n", begin.tv_sec, begin.tv_usec);
+printf("end:                           %d sec %d usec\n", end.tv_sec, end.tv_usec);
+seconds = end.tv_sec - begin.tv_sec;
+useconds = end.tv_usec - begin.tv_usec;
+if(useconds < 0) {
+useconds += 1000000;
+seconds--;
+}
+
+printf("Dauer der for-Schleife:        %d sec %d usec\n\n", seconds, useconds);
+*/
+
 
